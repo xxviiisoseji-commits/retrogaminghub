@@ -1,6 +1,6 @@
 {
   "id": "./",
-  "name": "Retro Gaming Hub 2.0",
+  "name": "Retro Gaming Hub 2.3",
   "short_name": "Retro Hub",
   "description": "Your personal GBA game library and emulator.",
   "start_url": "./index.html",

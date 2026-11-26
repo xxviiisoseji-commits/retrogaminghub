@@ -11,8 +11,8 @@ android {
         applicationId = "com.retrogaminghub.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "2.2.0"
+        versionCode = 3
+        versionName = "2.3.0"
     }
 
     compileOptions {
@@ -27,4 +27,5 @@ android {
 
 dependencies {
     implementation("androidx.webkit:webkit:1.12.1")
+    implementation("androidx.core:core:1.15.0")
 }

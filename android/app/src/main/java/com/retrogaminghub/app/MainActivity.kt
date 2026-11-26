@@ -7,6 +7,7 @@ import android.os.Bundle
 import android.util.Base64
 import android.view.View
 import android.view.WindowManager
+import android.graphics.Color
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.webkit.JavascriptInterface
@@ -17,6 +18,7 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.webkit.WebViewAssetLoader
+import androidx.core.view.WindowCompat
 
 class MainActivity : Activity() {
     private lateinit var webView: WebView
@@ -36,7 +38,12 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.setFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON, WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
+        window.statusBarColor = Color.rgb(9, 11, 18)
+        window.navigationBarColor = Color.rgb(9, 11, 18)
+        // Explicitly fit the home WebView inside system bars, including Android 15
+        // edge-to-edge enforcement, so camera cutouts never cover page controls.
+        WindowCompat.setDecorFitsSystemWindows(window, true)
+        window.decorView.systemUiVisibility = 0
 
         val loader = WebViewAssetLoader.Builder()
             .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(this))
@@ -68,6 +75,7 @@ class MainActivity : Activity() {
                 fullscreenCallback = callback
                 webView.visibility = View.GONE
                 root.addView(view, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+                WindowCompat.setDecorFitsSystemWindows(window, false)
                 window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or View.SYSTEM_UI_FLAG_LAYOUT_STABLE)
             }
             override fun onHideCustomView() {
@@ -76,7 +84,8 @@ class MainActivity : Activity() {
                 fullscreenCallback?.onCustomViewHidden()
                 fullscreenCallback = null
                 webView.visibility = View.VISIBLE
-                window.decorView.systemUiVisibility = (View.SYSTEM_UI_FLAG_LAYOUT_STABLE or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN)
+                WindowCompat.setDecorFitsSystemWindows(window, true)
+                window.decorView.systemUiVisibility = 0
             }
             override fun onShowFileChooser(view: WebView, callback: ValueCallback<Array<Uri>>, params: FileChooserParams): Boolean {
                 fileChooserCallback?.onReceiveValue(null)
