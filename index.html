@@ -206,6 +206,24 @@ body{padding-left:var(--safe-left);padding-right:var(--safe-right)}
 @media(max-width:380px){.library-tools{grid-template-columns:minmax(0,1fr) auto}.view-switch{grid-column:2;grid-row:1}}
 
 </style>
+
+
+/* 2.3.1 compact player toolbar */
+.player-topbar{height:58px;min-height:58px;padding:0 16px;justify-content:flex-end}
+.player-actions{gap:12px}
+.player-settings-wrap{position:relative}
+.player-action{font-size:13px;padding:9px 11px;border:1px solid #30384d;border-radius:9px;background:#141a28;color:#e5e9f4;white-space:nowrap}
+.player-action.speed-toggle{min-width:48px;font-weight:700;color:#b8a4ff}
+.player-action.close-player{font-size:21px;line-height:1;padding:6px 10px}
+.player-settings-menu{position:absolute;right:0;top:calc(100% + 9px);z-index:30;min-width:178px;padding:6px;background:#141a28;border:1px solid #39435a;border-radius:11px;box-shadow:0 16px 45px #000b}
+.player-settings-menu[hidden]{display:none}
+.player-menu-action{display:block;width:100%;padding:11px 12px;text-align:left;border:0;border-radius:7px;background:transparent;color:#e5e9f4;font-size:12px}
+.player-menu-action:active,.player-menu-action:hover{background:#252d42}
+.player-stage{padding:0;min-height:0}
+.player-frame-wrap{width:100%;height:100%;max-width:none;max-height:none;border:0;border-radius:0;box-shadow:none}
+.player-overlay.open{width:100vw;height:100dvh;min-height:100dvh}
+@media(max-width:620px){.player-topbar{height:54px;min-height:54px;padding:0 10px}.player-actions{gap:7px}.player-action{font-size:12px;padding:8px}.player-action.close-player{font-size:20px}.player-frame-wrap{height:100%}}
+
 </head>
 <body>
   <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
@@ -283,17 +301,19 @@ body{padding-left:var(--safe-left);padding-right:var(--safe-right)}
 
   <section class="player-overlay" id="playerOverlay" aria-hidden="true">
     <div class="player-topbar">
-      <button class="back-button" id="backToLibrary">← <span>Library</span></button>
-      <div class="playing-title"><span class="live-dot"></span><span id="playingName">Now playing</span></div>
       <div class="player-actions">
-        <button class="player-action" id="pauseButton">Ⅱ Pause</button>
-        <button class="player-action" id="speedButton" aria-pressed="false">1× Speed</button>
-        <button class="player-action" id="exportBatterySave">↓ .sav</button>
-        <button class="player-action" id="importBatterySave">↑ .sav</button>
-        <button class="player-action" id="exportStateButton">↓ State</button>
-        <button class="player-action" id="importStateButton">↑ State</button>
-        <button class="player-action" id="fullscreenButton">⛶</button>
-        <button class="player-action close-player" id="closePlayer">✕</button>
+        <div class="player-settings-wrap">
+          <button class="player-action" id="playerSettingsButton" aria-expanded="false" aria-controls="playerSettingsMenu">⚙ Settings</button>
+          <div class="player-settings-menu" id="playerSettingsMenu" hidden>
+            <button class="player-menu-action" id="pauseButton">Ⅱ Pause</button>
+            <button class="player-menu-action" id="importBatterySave">Import save</button>
+            <button class="player-menu-action" id="exportBatterySave">Export save</button>
+            <button class="player-menu-action" id="exportStateButton">Save state</button>
+            <button class="player-menu-action" id="importStateButton">Load state</button>
+          </div>
+        </div>
+        <button class="player-action speed-toggle" id="speedButton" aria-pressed="false">×1</button>
+        <button class="player-action close-player" id="closePlayer" aria-label="Close game" title="Close game">✕</button>
       </div>
     </div>
     <div class="player-stage">
@@ -639,14 +659,24 @@ window.__MGBA_WASM__ = "AGFzbQEAAAAB8AEjYAJ/fwBgAX8AYAN/f38Bf2ADf39/AGAEf39/fwBg
   }
 
   async function launchGame(id) {
+    const playerShell = $("playerOverlay");
+    playerShell.classList.add("open");
+    playerShell.setAttribute("aria-hidden", "false");
+    if (playerShell.requestFullscreen && !document.fullscreenElement) {
+      try { playerShell.requestFullscreen().catch(() => {}); } catch (_) {}
+    }
     const game = await getGame(id);
-    if (!game) return notify("That game is no longer in your library.");
+    if (!game) {
+      playerShell.classList.remove("open");
+      playerShell.setAttribute("aria-hidden", "true");
+      return notify("That game is no longer in your library.");
+    }
 
     if (activePlay) await closePlayer();
     currentGame = game;
     $("playingName").textContent = game.name;
-    $("playerOverlay").classList.add("open");
-    $("playerOverlay").setAttribute("aria-hidden", "false");
+    playerShell.classList.add("open");
+    playerShell.setAttribute("aria-hidden", "false");
     $("playerLoading").style.display = "flex";
     $("emulatorMount").replaceChildren();
     $("playerError").textContent = "";
@@ -683,7 +713,7 @@ window.__MGBA_WASM__ = "AGFzbQEAAAAB8AEjYAJ/fwBgAX8AYAN/f38Bf2ADf39/AGAEf39/fwBg
       paused = false;
       speedMultiplier = 1;
       if (typeof activePlay.setSpeed === "function") activePlay.setSpeed(1);
-      $("speedButton").textContent = "1× Speed";
+      $("speedButton").textContent = "×1";
       $("speedButton").setAttribute("aria-pressed", "false");
       $("pauseButton").textContent = "Ⅱ Pause";
       game.lastPlayed = Date.now();
@@ -717,11 +747,16 @@ window.__MGBA_WASM__ = "AGFzbQEAAAAB8AEjYAJ/fwBgAX8AYAN/f38Bf2ADf39/AGAEf39/fwBg
     currentGame = null;
     paused = false;
     speedMultiplier = 1;
-    $("speedButton").textContent = "1× Speed";
+    $("speedButton").textContent = "×1";
     $("speedButton").setAttribute("aria-pressed", "false");
     $("emulatorMount").replaceChildren();
     $("playerOverlay").classList.remove("open");
     $("playerOverlay").setAttribute("aria-hidden", "true");
+    if (document.fullscreenElement) {
+      try { await document.exitFullscreen(); } catch (_) {}
+    }
+    $("playerSettingsMenu").hidden = true;
+    $("playerSettingsButton").setAttribute("aria-expanded", "false");
     await renderLibrary();
   }
 
@@ -822,14 +857,26 @@ window.__MGBA_WASM__ = "AGFzbQEAAAAB8AEjYAJ/fwBgAX8AYAN/f38Bf2ADf39/AGAEf39/fwBg
       renderLibrary();
     }));
 
-    $("backToLibrary").addEventListener("click", closePlayer);
     $("closePlayer").addEventListener("click", closePlayer);
+    $("playerSettingsButton").addEventListener("click", () => {
+      const menu = $("playerSettingsMenu");
+      const opening = menu.hidden;
+      menu.hidden = !opening;
+      $("playerSettingsButton").setAttribute("aria-expanded", opening ? "true" : "false");
+    });
+    document.addEventListener("click", event => {
+      const wrap = document.querySelector(".player-settings-wrap");
+      if (wrap && !wrap.contains(event.target)) {
+        $("playerSettingsMenu").hidden = true;
+        $("playerSettingsButton").setAttribute("aria-expanded", "false");
+      }
+    });
     $("pauseButton").addEventListener("click", togglePause);
     $("speedButton").addEventListener("click", () => {
       if (!activePlay) return;
       speedMultiplier = speedMultiplier === 1 ? 2 : 1;
       if (typeof activePlay.setSpeed === "function") activePlay.setSpeed(speedMultiplier);
-      $("speedButton").textContent = speedMultiplier === 2 ? "2× Speed" : "1× Speed";
+      $("speedButton").textContent = speedMultiplier === 2 ? "×2" : "×1";
       $("speedButton").setAttribute("aria-pressed", speedMultiplier === 2 ? "true" : "false");
       notify(speedMultiplier === 2 ? "Fast-forward enabled (2×)." : "Normal speed restored.");
     });
@@ -854,18 +901,6 @@ window.__MGBA_WASM__ = "AGFzbQEAAAAB8AEjYAJ/fwBgAX8AYAN/f38Bf2ADf39/AGAEf39/fwBg
         catch (error) { notify(error.message); }
       }
       event.target.value = "";
-    });
-
-    $("fullscreenButton").addEventListener("click", async () => {
-      const shell = $("playerOverlay");
-      try {
-        if (document.fullscreenElement) await document.exitFullscreen();
-        else if (shell.requestFullscreen) await shell.requestFullscreen();
-        else notify("Fullscreen is not available in this browser.");
-      } catch (error) { notify("Could not enter fullscreen: " + error.message); }
-    });
-    document.addEventListener("fullscreenchange", () => {
-      $("fullscreenButton").textContent = document.fullscreenElement ? "⤢" : "⛶";
     });
 
     $("settingsButton").addEventListener("click", () => $("settingsDialog").showModal());
