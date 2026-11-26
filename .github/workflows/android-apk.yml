@@ -1,4 +1,3 @@
-
 name: Build Android APK
 
 on:
@@ -29,8 +28,7 @@ jobs:
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
 
       - name: Verify Android SDK packages
-        run: |
-          sdkmanager --list_installed
+        run: sdkmanager --list_installed
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
